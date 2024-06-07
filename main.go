@@ -4,49 +4,63 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 // Product represents a product in the eCommerce store
 type Product struct {
-	ID          int     `json:"id"`
+	ID          uint    `json:"id" gorm:"primaryKey"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
-	Slug        string  `json:"slug"`
+	Slug        string  `json:"slug" gorm:"unique"`
 }
 
-var products = []Product{
-	{ID: 1, Name: "Hoodie with Pocket", Description: "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.", Price: 45.00, Slug: "hoodie-with-pocket"},
-	{ID: 2, Name: "Hoodie with Zipper", Description: "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.", Price: 45.00, Slug: "hoodie-with-zipper"},
-	{ID: 3, Name: "Long Sleeve Tee", Description: "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet quam egestas semper. Aenean ultricies mi vitae est. Mauris placerat eleifend leo.", Price: 25.00, Slug: "long-sleeve-tee"},
+var DB *gorm.DB
+var err error
+
+// Initialize the database
+func initDB() {
+	DB, err = gorm.Open(sqlite.Open("products.db"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+
+	// Migrate the schema
+	DB.AutoMigrate(&Product{})
 }
 
 // getProducts returns a list of products
 func getProducts(c *gin.Context) {
+	var products []Product
+	DB.Find(&products)
 	c.JSON(http.StatusOK, products)
 }
 
 // getProduct returns the details of a single product by slug
 func getProduct(c *gin.Context) {
 	slug := c.Param("product-slug")
-	for _, product := range products {
-		if product.Slug == slug {
-			c.JSON(http.StatusOK, product)
-			return
-		}
+	var product Product
+	if result := DB.Where("slug = ?", slug).First(&product); result.Error != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
+		return
 	}
-	c.JSON(http.StatusNotFound, gin.H{"message": "Product not found"})
+	c.JSON(http.StatusOK, product)
 }
 
 func main() {
 	router := gin.Default()
+
+	// Initialize the database
+	initDB()
 
 	router.GET("/products", getProducts)
 	router.GET("/product/:product-slug", getProduct)
 
 	// Custom 404 handler
 	router.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"message": "Not found"})
+		c.JSON(http.StatusNotFound, gin.H{"message": "Page not found"})
 	})
 
 	router.Run(":8080")

@@ -1,0 +1,20 @@
+[
+    {
+        "name": "Hoodie with Pocket",
+        "description": "Pellentesque habitant morbi tristique...",
+        "price": 45,
+        "slug": "hoodie-with-pocket"
+    },
+    {
+        "name": "Hoodie with Zipper",
+        "description": "Pellentesque habitant morbi tristique...",
+        "price": 45,
+        "slug": "hoodie-with-zipper"
+    },
+    {
+        "name": "Long Sleeve Tee",
+        "description": "Pellentesque habitant morbi tristique...",
+        "price": 25,
+        "slug": "long-sleeve-tee"
+    }
+]
